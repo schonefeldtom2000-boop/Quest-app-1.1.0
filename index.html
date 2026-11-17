@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ff7a00">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Quests</title>
+<style>
+  :root{ --o1:#ff9a1f; --o2:#ff6a00; --o3:#ff3d00; --ink:#2b1500; --card:rgba(255,255,255,.93); }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink)}
+  body{background:linear-gradient(160deg,#ff9a1f,#ff6a00 55%,#ff4a00);overflow-x:hidden}
+
+  /* ---------- Hintergrund: nur transform/opacity (flüssig am Handy) ---------- */
+  .sky{position:fixed;inset:0;overflow:hidden;z-index:0;pointer-events:none;contain:strict}
+  .sky::before{content:"";position:absolute;inset:0;background:linear-gradient(200deg,#ffc400,#ff3d00 70%);opacity:0;animation:shift 9s ease-in-out infinite alternate;will-change:opacity}
+  @keyframes shift{to{opacity:.85}}
+  .glow{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(255,236,190,.75),rgba(255,236,190,0) 68%);will-change:transform}
+  .g1{width:460px;height:460px;left:-160px;top:-60px;animation:d1 22s ease-in-out infinite alternate}
+  .g2{width:380px;height:380px;right:-140px;top:34%;animation:d2 26s ease-in-out infinite alternate}
+  .g3{width:520px;height:520px;left:5%;bottom:-240px;animation:d3 30s ease-in-out infinite alternate}
+  @keyframes d1{to{transform:translate3d(200px,260px,0) scale(1.2)}}
+  @keyframes d2{to{transform:translate3d(-220px,-200px,0) scale(.85)}}
+  @keyframes d3{to{transform:translate3d(260px,-160px,0) scale(1.15)}}
+  .bub{position:absolute;bottom:-60px;border-radius:50%;background:rgba(255,255,255,.3);animation:rise linear infinite;will-change:transform}
+  @keyframes rise{from{transform:translate3d(0,0,0)}to{transform:translate3d(var(--dx),-115vh,0)}}
+
+  #app{position:relative;z-index:1;max-width:480px;margin:0 auto;min-height:100%;padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 24px)}
+  h1{margin:0;font-size:28px;font-weight:800;color:#fff;text-shadow:0 2px 10px rgba(120,40,0,.35)}
+  .wave{display:inline-block;transform-origin:70% 70%;animation:wave 2.4s ease-in-out infinite}
+  @keyframes wave{0%,60%,100%{transform:rotate(0)}10%,30%{transform:rotate(16deg)}20%,40%{transform:rotate(-10deg)}50%{transform:rotate(8deg)}}
+  .sub{color:#fff;opacity:.9;font-size:14px;margin-top:2px}
+  .top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px}
+  .logout{background:rgba(255,255,255,.25);border:0;color:#fff;border-radius:12px;padding:8px 12px;font-weight:700;transition:transform .15s}
+  .logout:active{transform:scale(.92)}
+
+  .card{background:var(--card);border-radius:22px;padding:18px;box-shadow:0 10px 30px rgba(120,40,0,.25)}
+  .auth{margin-top:8vh}
+  .auth.enter .card{animation:pop .5s cubic-bezier(.2,.9,.3,1.2) both}
+  .auth h1{text-align:center;font-size:34px}
+  .logo{display:inline-block;animation:bob 3s ease-in-out infinite}
+  @keyframes bob{50%{transform:translate3d(0,-6px,0) rotate(-6deg)}}
+  .auth .sub{text-align:center;margin-bottom:18px}
+  label{display:block;font-size:13px;font-weight:700;margin:12px 0 5px;color:#7a3a00}
+  input,select{width:100%;padding:13px 14px;border-radius:14px;border:2px solid #ffd2a3;background:#fff;font-size:16px;color:var(--ink);outline:none;transition:border-color .2s}
+  input:focus,select:focus{border-color:var(--o2)}
+  .btn{width:100%;margin-top:16px;padding:14px;border:0;border-radius:16px;font-size:17px;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--o1),var(--o3));box-shadow:0 6px 16px rgba(255,80,0,.4);transition:transform .15s}
+  .btn:active{transform:scale(.97)}
+  .link{background:none;border:0;color:#b34700;font-weight:700;margin-top:14px;width:100%;font-size:14px}
+  .roles{display:flex;gap:10px}
+  .role{flex:1;padding:14px 8px;border-radius:16px;border:2px solid #ffd2a3;background:#fff;font-weight:800;font-size:15px;color:#7a3a00;text-align:center;transition:transform .15s}
+  .role:active{transform:scale(.95)}
+  .role.on{background:linear-gradient(135deg,var(--o1),var(--o3));color:#fff;border-color:transparent}
+  .err{color:#c62800;font-size:13px;font-weight:700;margin-top:10px;min-height:16px}
+
+  /* Umschalter mit gleitender Markierung */
+  .seg{position:relative;display:flex;background:rgba(255,255,255,.25);border-radius:18px;padding:4px;margin-bottom:12px}
+  .seg::before{content:"";position:absolute;left:4px;top:4px;bottom:4px;width:calc(50% - 4px);background:#fff;border-radius:14px;box-shadow:0 3px 10px rgba(120,40,0,.2);transition:transform .3s cubic-bezier(.3,.9,.3,1);will-change:transform}
+  .seg[data-pos="other"]::before{transform:translate3d(100%,0,0)}
+  .seg button{position:relative;flex:1;border:0;background:none;padding:11px;border-radius:14px;font-weight:800;font-size:15px;color:#fff;transition:color .25s}
+  .seg button.on{color:var(--o2)}
+
+  .bar{display:flex;gap:8px;align-items:center;margin-bottom:12px;overflow-x:auto;padding:2px 0 4px;scrollbar-width:none}
+  .bar::-webkit-scrollbar{display:none}
+  .plus{flex:0 0 auto;width:44px;height:44px;border-radius:50%;border:0;background:#fff;color:var(--o2);font-size:30px;font-weight:700;line-height:1;box-shadow:0 4px 12px rgba(120,40,0,.25);transition:transform .25s cubic-bezier(.3,.9,.3,1.4)}
+  .plus:active{transform:rotate(90deg) scale(.88)}
+  .plus.pulse{animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{50%{transform:scale(1.14)}}
+  .chip{flex:0 0 auto;border:2px solid rgba(255,255,255,.7);background:rgba(255,255,255,.18);color:#fff;border-radius:14px;padding:9px 14px;font-weight:700;font-size:14px;transition:transform .15s,background-color .2s,color .2s}
+  .chip:active{transform:scale(.92)}
+  .chip.on{background:#fff;color:var(--o2);border-color:#fff}
+
+  .progress{color:#fff;font-weight:700;font-size:14px;margin:0 4px 10px}
+  .pbar{height:8px;border-radius:6px;background:rgba(255,255,255,.3);margin-top:6px;overflow:hidden}
+  .pfill{height:100%;width:100%;border-radius:6px;background:#fff;transform-origin:left;transform:scaleX(var(--p));animation:grow .8s cubic-bezier(.2,.8,.2,1) both}
+  @keyframes grow{from{transform:scaleX(0)}}
+
+  .task{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:20px;padding:14px;margin-bottom:10px;box-shadow:0 6px 18px rgba(120,40,0,.2);transition:transform .15s}
+  .task:active{transform:scale(.985)}
+  .task.enter{animation:pop .45s cubic-bezier(.2,.9,.3,1.15) both;animation-delay:calc(var(--i,0)*45ms)}
+  .task.out{animation:out .28s ease-in forwards;pointer-events:none}
+  @keyframes pop{from{opacity:0;transform:translate3d(0,18px,0) scale(.94)}to{opacity:1;transform:none}}
+  @keyframes out{to{opacity:0;transform:translate3d(70px,0,0) scale(.9)}}
+
+  .check{flex:0 0 auto;position:relative;width:36px;height:36px;border-radius:50%;border:3px solid var(--o2);background:#fff;display:grid;place-items:center;padding:0;transition:transform .15s}
+  .check:active{transform:scale(.85)}
+  .check svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+  .check.on{background:linear-gradient(135deg,var(--o1),var(--o3));border-color:transparent}
+  .check.on svg{opacity:1}
+  .check path{stroke-dasharray:1;stroke-dashoffset:0}
+  .check.just{animation:checkpop .5s cubic-bezier(.2,.9,.3,1.5)}
+  .check.just path{stroke-dashoffset:1;animation:draw .35s .12s ease-out forwards}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  @keyframes checkpop{0%{transform:scale(.7)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+  .check.ro{opacity:.9}
+  .tbody{flex:1;min-width:0}
+  .ttitle{font-weight:800;font-size:17px;word-break:break-word;transition:opacity .3s}
+  .task.done .ttitle{text-decoration:line-through;opacity:.5}
+  .meta{font-size:12.5px;color:#8a4a10;margin-top:3px}
+  .tag{display:inline-block;background:#ffe3c4;color:#b34700;border-radius:8px;padding:1px 8px;font-weight:700;font-size:12px;margin-right:4px}
+  .del{flex:0 0 auto;border:0;background:#fff0e0;color:#c62800;width:36px;height:36px;border-radius:12px;font-size:17px;transition:transform .15s}
+  .del:active{transform:scale(.8) rotate(-12deg)}
+  .empty{text-align:center;color:#fff;font-weight:700;padding:40px 10px;opacity:.95;animation:pop .5s both}
+  .empty .big{font-size:46px;display:inline-block;animation:bob 3s ease-in-out infinite}
+
+  .sheetbg{position:fixed;inset:0;background:rgba(60,20,0,.5);z-index:10;display:flex;align-items:flex-end;justify-content:center;animation:fade .2s}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .sheet{width:100%;max-width:480px;background:#fff;border-radius:28px 28px 0 0;padding:20px 18px calc(env(safe-area-inset-bottom) + 20px);animation:up .3s cubic-bezier(.2,.9,.3,1);max-height:92vh;overflow:auto}
+  @keyframes up{from{transform:translate3d(0,100%,0)}to{transform:none}}
+  .sheet h2{margin:0 0 4px;color:var(--o2)}
+  .row2{display:flex;gap:10px}.row2>div{flex:1}
+  .hint{font-size:12px;color:#a35a1a;margin-top:5px}
+  .btn.ghost{background:#ffe9d2;color:#b34700;box-shadow:none;margin-top:8px}
+  #toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 24px);transform:translate3d(-50%,20px,0);background:#2b1500;color:#fff;padding:11px 18px;border-radius:14px;font-weight:700;z-index:20;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none}
+  #toast.show{opacity:1;transform:translate3d(-50%,0,0)}
+
+  /* Konfetti beim Erledigen */
+  .burst{position:fixed;z-index:30;pointer-events:none;width:0;height:0}
+  .burst i{position:absolute;width:8px;height:8px;margin:-4px;border-radius:50%;animation:fly .7s ease-out forwards}
+  @keyframes fly{to{transform:translate3d(var(--x),var(--y),0) scale(.3);opacity:0}}
+
+  @media (prefers-reduced-motion:reduce){*,*::before{animation-duration:.01s!important;animation-iteration-count:1!important;transition-duration:.01s!important}}
+
+  .modehint{text-align:center;color:#fff;opacity:.9;font-size:12.5px;font-weight:700;margin-top:14px}
+  .loading{color:#fff;text-align:center;margin-top:34vh;font-weight:800;font-size:22px;animation:bob 2s ease-in-out infinite}
+</style>
+</head>
+<body>
+<div class="sky" id="sky"><div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div></div>
+<div id="app"></div>
+<div id="toast"></div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "Quests",
+  "short_name": "Quests",
+  "description": "Quests und Aufgaben für Kinder und Eltern",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#ff7a00",
+  "theme_color": "#ff7a00",
+  "lang": "de",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
